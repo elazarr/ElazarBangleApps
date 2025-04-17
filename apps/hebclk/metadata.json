@@ -5,6 +5,7 @@
   "version":"0.01",
   "description": "This is a clock oriented at Hebrew speakers",
   "screenshots" : [ { "url":"screenshot.png" } ],
+  "type": "clock",
   "tags": "clock",
   "supports": ["BANGLEJS2"],
   "storage": [
