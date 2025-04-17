@@ -6,7 +6,7 @@
   "description": "This is a clock oriented at Hebrew speakers",
   "screenshots" : [ { "url":"screenshot.png" } ],
   "type": "clock",
-  "tags": "clock",
+  "tags": "clocks",
   "supports": ["BANGLEJS2"],
   "storage": [
     {"name":"hebclk.app.js","url":"app.js"},
