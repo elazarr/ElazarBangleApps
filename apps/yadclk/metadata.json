@@ -3,7 +3,7 @@
   "shortName":"YadClock",
   "icon": "app.png",
   "version":"0.02",
-  "description": "Yet another digital clock. Large 7-segment time with small date info. In addition, shows the next calendar event.",
+  "description": "Yet-Another-Digital clock.<br>Large 7-segment time with small date info.<br>In addition, shows the next calendar event.",
   "screenshots" : [ { "url":"screenshot.png" } ],
   "type": "clock",
   "tags": "clocks",
