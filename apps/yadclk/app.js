@@ -11,22 +11,23 @@ const LCD_TOP = 0;
 const LCD_BOTTOM = g.getHeight();
 const LCD_LEFT = 0;
 const LCD_RIGHT = g.getWidth();
-// Main time position above center 
+// Main time position
 const TIME_POS_H = LCD_RIGHT;
 const TIME_ALIGN_H = 1 // To the left from right side
-const TIME_POS_V = LCD_CENTER_V;
+const TIME_POS_V = LCD_CENTER_V + 20;
 const TIME_ALIGN_V = 1 // Above given position
+const TIME_SEP_POS_V = TIME_POS_V - 60;
 // Position seconds at center dot
 const SEC_POS_H = LCD_CENTER_H + 5;
-const SEC_POS_V = LCD_CENTER_V - 40;
+const SEC_POS_V = LCD_CENTER_V - 20;
 // const SEC_POS_V = LCD_CENTER_V - 13; // Bottom dot
 // AM/PM inside left hour digit (would be at most '1' in 12H case)
 const AMPM_POS_H = LCD_LEFT + 5;
 const AMPM_ALIGN_H = -1;
-const AMPM_POS_V = LCD_CENTER_V - 40;
+const AMPM_POS_V = LCD_CENTER_V - 20;
 const AMPM_ALIGN_V = 0;
 // Position date below center
-const DATE_POS_V = LCD_CENTER_V;
+const DATE_POS_V = LCD_CENTER_V + 20;
 const DATE_ALIGN_V = -1; // Flow below
 
 // Position for events preview
@@ -112,7 +113,6 @@ function updateCalEvents() {
 
 // Draw main clock components: current time (no sec.) + date
 function drawClock() {
-  // work out how to display the current time
   var curd = new Date();
   var timeStr = locale.time(curd, 1 /*omit seconds*/);
   var ampmStr = locale.meridian(curd).toUpperCase();
@@ -120,6 +120,7 @@ function drawClock() {
   // Reset the state of the graphics library
   g.reset();
   g.setColor(0, 0, 0); // Black
+  g.drawLine(LCD_LEFT, TIME_SEP_POS_V, LCD_RIGHT, TIME_SEP_POS_V); // separator
 
   // draw the current time (4x size 7 segment)
   g.setFont("7x11Numeric7Seg:5").setFontAlign(TIME_ALIGN_H, TIME_ALIGN_V);
