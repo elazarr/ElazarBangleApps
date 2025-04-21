@@ -68,7 +68,7 @@ function drawWeather() {
   if (w.temp) {
     const t = locale.temp(w.temp-273.15);  // applies conversion
     g.setFont(FONT4TEXT).setFontAlign(1, 0).setColor(0,0,0);
-    g.drawString(t, WEATHER_POS_H - WEATHER_ICON_SIZE, WEATHER_POS_V);
+    g.drawString(t, WEATHER_POS_H - WEATHER_ICON_SIZE - 15, WEATHER_POS_V);
   } else {
     console.log("No weather temperature data");
   }
@@ -111,7 +111,7 @@ function updateCalEvents() {
     if (!activeEventStr) {
       // Look for active event if not found, yet
       if (now >= startTime && now < endTime) {
-        activeEventStr = `Now: ${e.title}`
+        activeEventStr = `Now:${e.title}`
         continue; // Cannot be "next"
       }
     }
