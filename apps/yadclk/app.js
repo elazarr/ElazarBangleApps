@@ -1,8 +1,14 @@
-locale = require("locale");
+// Load required modules
+const locale = require("locale");
+const weather = require('weather');
+
 // Load fonts
 require("Font7x11Numeric7Seg").add(Graphics);
-require("Font5x7Numeric7Seg").add(Graphics);
-require("Font8x16").add(Graphics);
+require("FontDylex7x13").add(Graphics);
+const FONT4DIGITS = "7x11Numeric7Seg:5";
+const FONT4DIGITS_SMALL = "7x11Numeric7Seg:2";
+const FONT4TEXT = "Dylex7x13:2"; // Font for generic free text (full ISO8859-1 support)
+const FONT4TEXT_SMALL = "6x8:2"; // For calendar events (a little smaller)
 
 // Generic display locations
 const LCD_CENTER_H = g.getWidth()/2;
@@ -18,7 +24,7 @@ const TIME_POS_V = LCD_CENTER_V + 20;
 const TIME_ALIGN_V = 1 // Above given position
 const TIME_SEP_POS_V = TIME_POS_V - 60;
 // Position seconds at center dot
-const SEC_POS_H = LCD_CENTER_H + 5;
+const SEC_POS_H = LCD_CENTER_H + 2;
 const SEC_POS_V = LCD_CENTER_V - 20;
 // const SEC_POS_V = LCD_CENTER_V - 13; // Bottom dot
 // AM/PM inside left hour digit (would be at most '1' in 12H case)
@@ -27,9 +33,8 @@ const AMPM_ALIGN_H = -1;
 const AMPM_POS_V = LCD_CENTER_V - 20;
 const AMPM_ALIGN_V = 0;
 // Position date below center
-const DATE_POS_V = LCD_CENTER_V + 20;
+const DATE_POS_V = LCD_CENTER_V + 22;
 const DATE_ALIGN_V = -1; // Flow below
-
 // Position for events preview
 const EVENT_FRAME_V = LCD_BOTTOM - 40;
 const EVENT_NOW_POS_V = LCD_BOTTOM - 20;
@@ -37,6 +42,10 @@ const EVENT_NEXT_POS_V = LCD_BOTTOM - 2;
 const EVENT_ALIGN_V = 1; // Above anchor
 const EVENT_POS_H = LCD_LEFT + 1;
 const EVENT_ALIGN_H = -1; // From left side to the right
+// Position for weather info
+const WEATHER_POS_H = LCD_RIGHT;
+const WEATHER_POS_V = LCD_TOP + 35;
+const WEATHER_ICON_SIZE = 15;
 
 // Context for calendar events preview
 var activeEventStr;
@@ -49,18 +58,33 @@ var nextEventStr;
 const SEC_PER_HOUR = 60 * 60;
 const EVENTS_PREVIEW_LIMIT = 23 * SEC_PER_HOUR; // 23 hours in seconds
 
+function drawWeather() {
+  const w = weather.get();
+  if (!w) return;
+  g.clearRect(this.x, this.y, this.x+this.width-1, this.y+23);
+  if (w.code||w.txt) {
+    weather.drawIcon(w, WEATHER_POS_H - WEATHER_ICON_SIZE, WEATHER_POS_V, WEATHER_ICON_SIZE);
+  }
+  if (w.temp) {
+    const t = locale.temp(w.temp-273.15);  // applies conversion
+    g.setFont(FONT4TEXT).setFontAlign(1, 0).setColor(0,0,0);
+    g.drawString(t, WEATHER_POS_H - WEATHER_ICON_SIZE, WEATHER_POS_V);
+  } else {
+    console.log("No weather temperature data");
+  }
+}
 
 // Draw active and upcoming calendar events
 function drawCalEvents() {
   g.drawLine(LCD_LEFT, EVENT_FRAME_V, LCD_RIGHT, EVENT_FRAME_V);
-  g.setFont("6x8:2").setFontAlign(EVENT_ALIGN_H, EVENT_ALIGN_V);
+  g.setFont(FONT4TEXT_SMALL).setFontAlign(EVENT_ALIGN_H, EVENT_ALIGN_V);
   if (activeEventStr) {
-    console.log("Drawing active event");
+    //console.log("Drawing active event");
     g.setColor(0,0,0); // TODO: Use red for active event
     g.drawString(activeEventStr, EVENT_POS_H, EVENT_NOW_POS_V, true);
   }
   if (nextEventStr) {
-    console.log("Drawing next event");
+    //console.log("Drawing next event");
     g.setColor(0,0,0); // TODO: Use yellow (?) for active event
     g.drawString(nextEventStr, EVENT_POS_H, EVENT_NEXT_POS_V, true);
   }
@@ -123,26 +147,27 @@ function drawClock() {
   g.drawLine(LCD_LEFT, TIME_SEP_POS_V, LCD_RIGHT, TIME_SEP_POS_V); // separator
 
   // draw the current time (4x size 7 segment)
-  g.setFont("7x11Numeric7Seg:5").setFontAlign(TIME_ALIGN_H, TIME_ALIGN_V);
+  g.setFont(FONT4DIGITS).setFontAlign(TIME_ALIGN_H, TIME_ALIGN_V);
   g.drawString(timeStr, TIME_POS_H, TIME_POS_V, true /*clear background*/);
   // draw the meridian (am/pm)
-  g.setFont("6x8:2").setFontAlign(AMPM_ALIGN_H, AMPM_ALIGN_V);
+  g.setFont(FONT4TEXT_SMALL).setFontAlign(AMPM_ALIGN_H, AMPM_ALIGN_V);
   g.drawString(ampmStr, AMPM_POS_H, AMPM_POS_V, true /*clear background*/);
 
   // draw the date, in a normal font
-  const dayStr = `${locale.dow(curd).slice(0,2)}.`
+  const dayStr = `${locale.dow(curd).slice(0,3)}.`
+  g.setFont(FONT4TEXT);
   // Push day to the left
-  g.setFont("8x16:2").setFontAlign(-1, DATE_ALIGN_V).drawString(dayStr, LCD_LEFT + 1, DATE_POS_V, true /*clear background*/);
+  g.setFontAlign(-1, DATE_ALIGN_V).drawString(dayStr, LCD_LEFT + 1, DATE_POS_V, true /*clear background*/);
   const dateStr = `${curd.getDate()}/${curd.getMonth()}/${curd.getFullYear().toString().slice(2,)}`;
   // Push date to the right
-  g.setFont("8x16:2").setFontAlign(1, DATE_ALIGN_V).drawString(dateStr, LCD_RIGHT - 1, DATE_POS_V, true /*clear background*/);
+  g.setFontAlign(1, DATE_ALIGN_V).drawString(dateStr, LCD_RIGHT - 1, DATE_POS_V, true /*clear background*/);
 }
 
 // Update just the seconds
 // Invoked only when clock is unlocked
 function updateSeconds(curd) {
   var secondsStr = curd.getSeconds().toString().padStart(2,0);
-  g.setFont("5x7Numeric7Seg:2").setFontAlign(0,0).setColor(0, 0, 0);
+  g.setFont(FONT4DIGITS_SMALL).setFontAlign(0,0).setColor(0, 0, 0);
   g.drawString(secondsStr, SEC_POS_H, SEC_POS_V, true /*clear background*/);
 }
 
@@ -153,6 +178,7 @@ function updateClock(forceDrawAll) {
     // Should update the whole clock
     drawClock();
     updateCalEvents();
+    drawWeather();
   }
   if (!Bangle.isLocked()) { // Update seconds only when unlocked
     updateSeconds(curd);
