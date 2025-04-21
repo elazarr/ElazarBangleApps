@@ -24,7 +24,7 @@ const TIME_POS_V = LCD_CENTER_V + 20;
 const TIME_ALIGN_V = 1 // Above given position
 const TIME_SEP_POS_V = TIME_POS_V - 60;
 // Position seconds at center dot
-const SEC_POS_H = LCD_CENTER_H + 2;
+const SEC_POS_H = LCD_CENTER_H + 5;
 const SEC_POS_V = LCD_CENTER_V - 20;
 // const SEC_POS_V = LCD_CENTER_V - 13; // Bottom dot
 // AM/PM inside left hour digit (would be at most '1' in 12H case)
