@@ -68,7 +68,7 @@ function drawWeather() {
   if (w.temp) {
     const t = locale.temp(w.temp-273.15);  // applies conversion
     g.setFont(FONT4TEXT).setFontAlign(1, 0).setColor(0,0,0);
-    g.drawString(t, WEATHER_POS_H - WEATHER_ICON_SIZE - 15, WEATHER_POS_V);
+    g.drawString(t, WEATHER_POS_H - WEATHER_ICON_SIZE - 15, WEATHER_POS_V, true);
   } else {
     console.log("No weather temperature data");
   }
@@ -80,12 +80,10 @@ function drawCalEvents() {
   g.setFont(FONT4TEXT_SMALL).setFontAlign(EVENT_ALIGN_H, EVENT_ALIGN_V);
   if (activeEventStr) {
     //console.log("Drawing active event");
-    g.setColor(0,0,0); // TODO: Use red for active event
     g.drawString(activeEventStr, EVENT_POS_H, EVENT_NOW_POS_V, true);
   }
   if (nextEventStr) {
     //console.log("Drawing next event");
-    g.setColor(0,0,0); // TODO: Use yellow (?) for active event
     g.drawString(nextEventStr, EVENT_POS_H, EVENT_NEXT_POS_V, true);
   }
 }
@@ -142,8 +140,6 @@ function drawClock() {
   var ampmStr = locale.meridian(curd).toUpperCase();
 
   // Reset the state of the graphics library
-  g.reset();
-  g.setColor(0, 0, 0); // Black
   g.drawLine(LCD_LEFT, TIME_SEP_POS_V, LCD_RIGHT, TIME_SEP_POS_V); // separator
 
   // draw the current time (4x size 7 segment)
@@ -176,6 +172,8 @@ function updateClock(forceDrawAll) {
   var curd = new Date();
   if (curd.getSeconds() == 0 || forceDrawAll) { 
     // Should update the whole clock
+    g.reset();
+    g.setColor(0, 0, 0); // Black
     drawClock();
     updateCalEvents();
     drawWeather();
