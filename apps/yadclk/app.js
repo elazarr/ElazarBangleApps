@@ -61,16 +61,15 @@ const EVENTS_PREVIEW_LIMIT = 23 * SEC_PER_HOUR; // 23 hours in seconds
 function drawWeather() {
   const w = weather.get();
   if (!w) return;
-  g.clearRect(this.x, this.y, this.x+this.width-1, this.y+23);
-  if (w.code||w.txt) {
+  g.clearRect(WEATHER_POS_H - WEATHER_ICON_SIZE - 4*12, WEATHER_POS_V - WEATHER_ICON_SIZE/2,
+              WEATHER_POS_H, WEATHER_POS_V + WEATHER_ICON_SIZE/2);
+  if (w.temp && (w.code||w.txt)) {
     weather.drawIcon(w, WEATHER_POS_H - WEATHER_ICON_SIZE, WEATHER_POS_V, WEATHER_ICON_SIZE);
-  }
-  if (w.temp) {
     const t = locale.temp(w.temp-273.15);  // applies conversion
     g.setFont(FONT4TEXT).setFontAlign(1, 0).setColor(0,0,0);
     g.drawString(t, WEATHER_POS_H - WEATHER_ICON_SIZE - 15, WEATHER_POS_V, true);
   } else {
-    console.log("No weather temperature data");
+    console.warn("Weather data is missing!");
   }
 }
 
@@ -81,10 +80,14 @@ function drawCalEvents() {
   if (activeEventStr) {
     //console.log("Drawing active event");
     g.drawString(activeEventStr, EVENT_POS_H, EVENT_NOW_POS_V, true);
+  } else { // Clear if not active event
+    g.clearRect(EVENT_POS_H, EVENT_NOW_POS_V, LCD_RIGHT, EVENT_NEXT_POS_V - 1);
   }
   if (nextEventStr) {
     //console.log("Drawing next event");
     g.drawString(nextEventStr, EVENT_POS_H, EVENT_NEXT_POS_V, true);
+  } else { // Clear if not upcoming event
+    g.clearRect(EVENT_POS_H, EVENT_NEXT_POS_V, LCD_RIGHT, LCD_BOTTOM);
   }
 }
 
