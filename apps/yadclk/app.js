@@ -75,19 +75,16 @@ function drawWeather() {
 
 // Draw active and upcoming calendar events
 function drawCalEvents() {
-  g.drawLine(LCD_LEFT, EVENT_FRAME_V, LCD_RIGHT, EVENT_FRAME_V);
+  g.drawLine(LCD_LEFT, EVENT_FRAME_V, LCD_RIGHT, EVENT_FRAME_V); // Separator line at top of events section
+  g.clearRect(LCD_LEFT, EVENT_FRAME_V + 2, LCD_RIGHT, LCD_BOTTOM); // Clear current event data before refreshing
   g.setFont(FONT4TEXT_SMALL).setFontAlign(EVENT_ALIGN_H, EVENT_ALIGN_V);
   if (activeEventStr) {
     //console.log("Drawing active event");
     g.drawString(activeEventStr, EVENT_POS_H, EVENT_NOW_POS_V, true);
-  } else { // Clear if not active event
-    g.clearRect(EVENT_POS_H, EVENT_NOW_POS_V, LCD_RIGHT, EVENT_NEXT_POS_V - 1);
   }
   if (nextEventStr) {
     //console.log("Drawing next event");
     g.drawString(nextEventStr, EVENT_POS_H, EVENT_NEXT_POS_V, true);
-  } else { // Clear if not upcoming event
-    g.clearRect(EVENT_POS_H, EVENT_NEXT_POS_V, LCD_RIGHT, LCD_BOTTOM);
   }
 }
 
