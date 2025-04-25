@@ -205,5 +205,21 @@ Bangle.on('lock',(locked,reason)=>{
 // Load and display widgets
 Bangle.loadWidgets();
 Bangle.drawWidgets();
-// Show launcher when middle button pressed
-Bangle.setUI("clock");
+
+Bangle.setUI({
+  // "clock" mode defaults to show launcher when middle button pressed
+  mode: "clock",
+  // Set touch zones:
+  touch: (zone, p) => {
+    // Touch in events preview section -> Agenda app
+    if (p.y > EVENT_FRAME_V) { 
+      console.log("Switching to Agenda app...");
+      load("agenda.app.js");
+    }
+    // Touch in weather preview section -> Weather app
+    else if ((p.y < TIME_SEP_POS_V) && (p.x > LCD_CENTER_H)) { // Touch where weather preview
+      console.log("Switching to weather app...")
+      load("weather.app.js")
+    }
+  }
+});
