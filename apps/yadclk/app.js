@@ -60,7 +60,10 @@ const EVENTS_PREVIEW_LIMIT = 23 * SEC_PER_HOUR; // 23 hours in seconds
 
 function drawWeather() {
   const w = weather.get();
-  if (!w) return;
+  if (!w) {
+    console.warn("Failed getting weather data");
+    return;
+  }
   g.clearRect(WEATHER_POS_H - WEATHER_ICON_SIZE - 4*12, WEATHER_POS_V - WEATHER_ICON_SIZE/2,
               WEATHER_POS_H, WEATHER_POS_V + WEATHER_ICON_SIZE/2);
   if (w.temp && (w.code||w.txt)) {
@@ -69,7 +72,7 @@ function drawWeather() {
     g.setFont(FONT4TEXT).setFontAlign(1, 0).setColor(0,0,0);
     g.drawString(t, WEATHER_POS_H - WEATHER_ICON_SIZE - 15, WEATHER_POS_V, true);
   } else {
-    console.warn("Weather data is missing!");
+    console.warn("Weather data is partial: w =", w);
   }
 }
 
