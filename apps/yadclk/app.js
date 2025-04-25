@@ -157,7 +157,7 @@ function drawClock() {
   g.setFont(FONT4TEXT);
   // Push day to the left
   g.setFontAlign(-1, DATE_ALIGN_V).drawString(dayStr, LCD_LEFT + 1, DATE_POS_V, true /*clear background*/);
-  const dateStr = `${curd.getDate()}/${curd.getMonth()}/${curd.getFullYear().toString().slice(2,)}`;
+  const dateStr = `${curd.getDate()}/${curd.getMonth()+1}/${curd.getFullYear().toString().slice(2,)}`;
   // Push date to the right
   g.setFontAlign(1, DATE_ALIGN_V).drawString(dateStr, LCD_RIGHT - 1, DATE_POS_V, true /*clear background*/);
 }
