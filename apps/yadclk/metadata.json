@@ -3,7 +3,7 @@
   "shortName":"YadClock",
   "version":"0.03",
   "icon": "app.png",
-  "dependencies": {"weather":"app"},
+  "dependencies": {"android": "app", "weather":"app"},
   "description": "Yet-Another-Digital clock.<br>Large 7-segment time with small date info.<br>In addition, shows the next calendar event and weather preview.",
   "screenshots" : [ { "url":"screenshot.png" } ],
   "type": "clock",
