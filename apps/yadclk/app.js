@@ -40,7 +40,6 @@ const EVENT_FRAME_V = LCD_BOTTOM - 40;
 const EVENT_NOW_POS_V = LCD_BOTTOM - 20;
 const EVENT_NEXT_POS_V = LCD_BOTTOM - 2;
 const EVENT_ALIGN_V = 1; // Above anchor
-const EVENT_POS_H = LCD_LEFT + 1;
 const EVENT_ALIGN_H = -1; // From left side to the right
 // Position for weather info
 const WEATHER_POS_H = LCD_RIGHT;
@@ -48,8 +47,10 @@ const WEATHER_POS_V = LCD_TOP + 35;
 const WEATHER_ICON_SIZE = 15;
 
 // Context for calendar events preview
-var activeEventStr;
-var nextEventStr;
+var activeEventTitleStr; // The event title field value
+var nextEventTitleStr;
+var nextEventTimeStr;
+var eventTitleOffset = 0; // For vertical scroll state
 // Constants to define events preview window limit
 // Since the preview only displays event hours
 // we should limit the preview to next 23 hours
@@ -76,18 +77,32 @@ function drawWeather() {
   }
 }
 
+// Draw an event (agenda) item line
+// Handle vertical scrolling of the event title
+function drawEventLine(prefixStr, titleStr, verticalPos, vScrollOffset) {
+  const prefixWidth = g.stringWidth(prefixStr);
+  const titleWidth = g.stringWidth(titleStr);
+  const titleScrollOffset = vScrollOffset % titleWidth;
+  const titleRightSide = prefixWidth + titleWidth - titleScrollOffset;
+  // Draw the title right-aligned at calculated offset
+  g.setFontAlign(1, EVENT_ALIGN_V).drawString(titleStr, titleRightSide, verticalPos, true);
+  // then mask scrolled-left part with the prefix
+  g.setFontAlign(-1, EVENT_ALIGN_V).drawString(prefixStr, LCD_LEFT, verticalPos, true);
+}
+
 // Draw active and upcoming calendar events
-function drawCalEvents() {
+// The event title would have horizontal offset of vScrollOffset for scroll effect
+function drawCalEvents(vScrollOffset) {
   g.drawLine(LCD_LEFT, EVENT_FRAME_V, LCD_RIGHT, EVENT_FRAME_V); // Separator line at top of events section
   g.clearRect(LCD_LEFT, EVENT_FRAME_V + 2, LCD_RIGHT, LCD_BOTTOM); // Clear current event data before refreshing
-  g.setFont(FONT4TEXT_SMALL).setFontAlign(EVENT_ALIGN_H, EVENT_ALIGN_V);
-  if (activeEventStr) {
+  g.setFont(FONT4TEXT_SMALL)
+  if (activeEventTitleStr) {
     //console.log("Drawing active event");
-    g.drawString(activeEventStr, EVENT_POS_H, EVENT_NOW_POS_V, true);
+    drawEventLine("Now:", activeEventTitleStr, EVENT_NOW_POS_V, vScrollOffset);
   }
-  if (nextEventStr) {
+  if (nextEventTitleStr) {
     //console.log("Drawing next event");
-    g.drawString(nextEventStr, EVENT_POS_H, EVENT_NEXT_POS_V, true);
+    drawEventLine(nextEventTimeStr, nextEventTitleStr, EVENT_NEXT_POS_V, vScrollOffset);
   }
 }
 
@@ -99,8 +114,8 @@ function updateCalEvents() {
     return;
   }
   // Clear previous events strings
-  activeEventStr = undefined;
-  nextEventStr = undefined;
+  activeEventTitleStr = undefined;
+  nextEventTitleStr = undefined;
   var nextStartTime; // Save start of selected next in case earlier is found
   // Scan events to find active and upcoming (next) event
   const now = getTime();
@@ -109,18 +124,19 @@ function updateCalEvents() {
     const e = calendar[i]
     const startTime = e.timestamp;
     const endTime = startTime + e.durationInSeconds;
-    if (!activeEventStr) {
+    if (!activeEventTitleStr) {
       // Look for active event if not found, yet
       if (now >= startTime && now < endTime) {
-        activeEventStr = `Now:${e.title}`
+        activeEventTitleStr = e.title
         continue; // Cannot be "next"
       }
     }
-    if (!nextEventStr || (startTime < nextStartTime)) {
+    if (!nextEventTitleStr || (startTime < nextStartTime)) {
       // If no upcoming event, yet,
       // or this event starts before previously set next event
       // (this sets next and the earliest in the future)
       if ((startTime > now) && (startTime < previewHorizon)) { 
+        nextEventTitleStr = e.title
         // This event has not stared, yet, and not too far.
         // Convert event timestamp in Unix Epoch seconds
         // to Date(epoch millisec) then use locale.time
@@ -128,12 +144,13 @@ function updateCalEvents() {
         const startDate = Date(startTime * 1000)
         const timeStr = locale.time(startDate, 1);
         const ampm = locale.is12Hours() ? locale.meridian(startDate)[0] : ""
-        nextEventStr = `${ampm}${timeStr}:${e.title}`
+        nextEventTimeStr = `${ampm}${timeStr}:`
         nextStartTime = startTime; // Save for testing against other events in the future
       }
     }
   }
-  drawCalEvents(); // Redraw after update of events data
+  eventTitleOffset = 0; // After update, reset horizontal scrolling
+  drawCalEvents(eventTitleOffset); // Redraw after update of events data
 }
 
 // Draw main clock components: current time (no sec.) + date
@@ -175,14 +192,18 @@ function updateClock(forceDrawAll) {
   var curd = new Date();
   if (curd.getSeconds() == 0 || forceDrawAll) { 
     // Should update the whole clock
+    eventTitleOffset = 0; // Reset events title scroll offset
     g.reset();
     g.setColor(0, 0, 0); // Black
     drawClock();
     updateCalEvents();
     drawWeather();
   }
-  if (!Bangle.isLocked()) { // Update seconds only when unlocked
+  if (!Bangle.isLocked()) { 
+    // Update seconds and scroll event title only when unlocked
     updateSeconds(curd);
+    drawCalEvents(eventTitleOffset);
+    eventTitleOffset += 12; // For next update on next second
   }
 }
 
