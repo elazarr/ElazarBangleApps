@@ -82,7 +82,8 @@ function drawWeather() {
 function drawEventLine(prefixStr, titleStr, verticalPos, vScrollOffset) {
   const prefixWidth = g.stringWidth(prefixStr);
   const titleWidth = g.stringWidth(titleStr);
-  const titleScrollOffset = vScrollOffset % titleWidth;
+  const titleScrollOffset = (prefixWidth + titleWidth) > g.getWidth() ? vScrollOffset % titleWidth : 0;
+  // titleScrollOffset would be 0 if title fits, i.e., no need for horizontal scrolling
   const titleRightSide = prefixWidth + titleWidth - titleScrollOffset;
   // Draw the title right-aligned at calculated offset
   g.setFontAlign(1, EVENT_ALIGN_V).drawString(titleStr, titleRightSide, verticalPos, true);
