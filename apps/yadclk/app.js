@@ -214,12 +214,14 @@ Bangle.setUI({
     // Touch in events preview section -> Agenda app
     if (p.y > EVENT_FRAME_V) { 
       console.log("Switching to Agenda app...");
-      load("agenda.app.js");
+      // Provide haptic feedback before loading
+      Bangle.buzz(50).then(() => {load("agenda.app.js");} );
     }
     // Touch in weather preview section -> Weather app
     else if ((p.y < TIME_SEP_POS_V) && (p.x > LCD_CENTER_H)) { // Touch where weather preview
       console.log("Switching to weather app...")
-      load("weather.app.js")
+      // Provide haptic feedback before loading
+      Bangle.buzz(50).then(() => {load("weather.app.js");} );
     }
   }
 });
