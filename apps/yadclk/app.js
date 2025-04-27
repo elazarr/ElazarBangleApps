@@ -117,18 +117,23 @@ function updateCalEvents() {
   // Clear previous events strings
   activeEventTitleStr = undefined;
   nextEventTitleStr = undefined;
+  var activeEndTime; // Save end time of selected active event
   var nextStartTime; // Save start of selected next in case earlier is found
   // Scan events to find active and upcoming (next) event
   const now = getTime();
   const previewHorizon = now + EVENTS_PREVIEW_LIMIT;
   for (var i in calendar) {
-    const e = calendar[i]
+    const e = calendar[i];
     const startTime = e.timestamp;
     const endTime = startTime + e.durationInSeconds;
-    if (!activeEventTitleStr) {
-      // Look for active event if not found, yet
+    if (!activeEventTitleStr || (e.endTime < activeEndTime)) {
+      // Look for active event if not found, yet,
+      // or if there is a shorter event that is active now
+      // (to handle case of events with long-span that has
+      // focused short events within their time span)
       if (now >= startTime && now < endTime) {
-        activeEventTitleStr = e.title
+        activeEventTitleStr = e.title;
+        activeEndTime = e.endTime;
         continue; // Cannot be "next"
       }
     }
@@ -137,15 +142,15 @@ function updateCalEvents() {
       // or this event starts before previously set next event
       // (this sets next and the earliest in the future)
       if ((startTime > now) && (startTime < previewHorizon)) { 
-        nextEventTitleStr = e.title
+        nextEventTitleStr = e.title;
         // This event has not stared, yet, and not too far.
         // Convert event timestamp in Unix Epoch seconds
         // to Date(epoch millisec) then use locale.time
         // to get current time without seconds
-        const startDate = Date(startTime * 1000)
+        const startDate = Date(startTime * 1000);
         const timeStr = locale.time(startDate, 1);
-        const ampm = locale.is12Hours() ? locale.meridian(startDate)[0] : ""
-        nextEventTimeStr = `${ampm}${timeStr}:`
+        const ampm = locale.is12Hours() ? locale.meridian(startDate)[0] : "";
+        nextEventTimeStr = `${ampm}${timeStr}:`;
         nextStartTime = startTime; // Save for testing against other events in the future
       }
     }
