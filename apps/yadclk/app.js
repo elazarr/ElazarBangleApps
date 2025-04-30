@@ -47,10 +47,12 @@ const WEATHER_POS_V = LCD_TOP + 35;
 const WEATHER_ICON_SIZE = 15;
 
 // Context for calendar events preview
-var activeEventTitleStr; // The event title field value
-var nextEventTitleStr;
-var nextEventTimeStr;
+var activeEventTitle;
+var nextEventTitle;
+var nextEventTime;
+var nextEventNotifMinutes; // Array of next event notification minutes
 var eventTitleOffset = 0; // For vertical scroll state
+
 // Constants to define events preview window limit
 // Since the preview only displays event hours
 // we should limit the preview to next 23 hours
@@ -94,17 +96,51 @@ function drawEventLine(prefixStr, titleStr, verticalPos, vScrollOffset) {
 // Draw active and upcoming calendar events
 // The event title would have horizontal offset of vScrollOffset for scroll effect
 function drawCalEvents(vScrollOffset) {
+  g.setColor(0, 0, 0); // black
   g.drawLine(LCD_LEFT, EVENT_FRAME_V, LCD_RIGHT, EVENT_FRAME_V); // Separator line at top of events section
   g.clearRect(LCD_LEFT, EVENT_FRAME_V + 2, LCD_RIGHT, LCD_BOTTOM); // Clear current event data before refreshing
   g.setFont(FONT4TEXT_SMALL)
-  if (activeEventTitleStr) {
+  if (activeEventTitle) {
     //console.log("Drawing active event");
-    drawEventLine("Now:", activeEventTitleStr, EVENT_NOW_POS_V, vScrollOffset);
+    drawEventLine("Now:", activeEventTitle, EVENT_NOW_POS_V, vScrollOffset);
   }
-  if (nextEventTitleStr) {
+  if (nextEventTitle) {
     //console.log("Drawing next event");
-    drawEventLine(nextEventTimeStr, nextEventTitleStr, EVENT_NEXT_POS_V, vScrollOffset);
+    // Convert event timestamp in Unix Epoch seconds
+    // to Date(epoch millisec) then use locale.time
+    // to get current time without seconds
+    const startDate = Date(nextEventTime * 1000);
+    const timeStr = locale.time(startDate, 1);
+    const ampm = locale.is12Hours() ? locale.meridian(startDate)[0] : "";
+    nextEventTimeStr = `${ampm}${timeStr}:`;
+    drawEventLine(nextEventTimeStr, nextEventTitle, EVENT_NEXT_POS_V, vScrollOffset);
   }
+}
+
+// Handle notification about upcoming next event
+// Return `true` if a notification was initiated
+function handleCalNotif()
+{
+  if (!nextEventTitle)
+    return false;
+  const minuteAccuracySeconds = 10; // Accuracy in seconds of minutes calculation to compensate for "late notification"
+  const minutes2Next = Math.floor((nextEventTime - getTime() + minuteAccuracySeconds) / 60);
+  //console.log(`handleCalNotif: now=${getTime()} , next=${nextEventTime} , notifs=${nextEventNotifMinutes} , min2next=${minutes2Next}`)
+  // Clear notification minutes that already passed to get relevant notification minutes
+  while (nextEventNotifMinutes[0] && nextEventNotifMinutes[0] > minutes2Next)
+    nextEventNotifMinutes.shift();
+  if (nextEventNotifMinutes[0] && nextEventNotifMinutes[0] == minutes2Next) { // Show notification?
+    nextEventNotifMinutes.shift(); // Clear snooze minutes currently used
+    disableClock(); // Avoid clock drawn while notification prompt appears
+    Bangle.buzz(250);
+    E.showPrompt(nextEventTitle, {title: `In ${minutes2Next} min.`, buttons: {"OK": 0}})
+      .then((_) => { 
+        // After "OK" touched restore clock face
+        enableClock(); 
+      });
+    return true;
+  }
+  return false
 }
 
 // Update calendar events from Android calendar, if available
@@ -115,8 +151,10 @@ function updateCalEvents() {
     return;
   }
   // Clear previous events strings
-  activeEventTitleStr = undefined;
-  nextEventTitleStr = undefined;
+  activeEventTitle = undefined;
+  nextEventTitle = undefined;
+  const prevNextEventTime = nextEventTime; // Save to test if to re-arm notifications
+  nextEventTime = undefined;
   var activeEndTime; // Save end time of selected active event
   var nextStartTime; // Save start of selected next in case earlier is found
   // Scan events to find active and upcoming (next) event
@@ -126,37 +164,34 @@ function updateCalEvents() {
     const e = calendar[i];
     const startTime = e.timestamp;
     const endTime = startTime + e.durationInSeconds;
-    if (!activeEventTitleStr || (e.endTime < activeEndTime)) {
+    if (!activeEventTitle || (e.endTime < activeEndTime)) {
       // Look for active event if not found, yet,
       // or if there is a shorter event that is active now
       // (to handle case of events with long-span that has
       // focused short events within their time span)
       if (now >= startTime && now < endTime) {
-        activeEventTitleStr = e.title;
+        activeEventTitle = e.title;
         activeEndTime = e.endTime;
         continue; // Cannot be "next"
       }
     }
-    if (!nextEventTitleStr || (startTime < nextStartTime)) {
+    if (!nextEventTitle || (startTime < nextStartTime)) {
       // If no upcoming event, yet,
       // or this event starts before previously set next event
       // (this sets next and the earliest in the future)
       if ((startTime > now) && (startTime < previewHorizon)) { 
-        nextEventTitleStr = e.title;
         // This event has not stared, yet, and not too far.
-        // Convert event timestamp in Unix Epoch seconds
-        // to Date(epoch millisec) then use locale.time
-        // to get current time without seconds
-        const startDate = Date(startTime * 1000);
-        const timeStr = locale.time(startDate, 1);
-        const ampm = locale.is12Hours() ? locale.meridian(startDate)[0] : "";
-        nextEventTimeStr = `${ampm}${timeStr}:`;
-        nextStartTime = startTime; // Save for testing against other events in the future
+        nextEventTitle = e.title;
+        nextEventTime = startTime; // Save for testing against other events in the future
       }
     }
+
+    if (nextEventTime && prevNextEventTime != nextEventTime) { // New next event time
+      // Rearm notification snooze series for new "next event"
+      nextEventNotifMinutes = [5, 3, 1];
+    }
   }
-  eventTitleOffset = 0; // After update, reset horizontal scrolling
-  drawCalEvents(eventTitleOffset); // Redraw after update of events data
+
 }
 
 // Draw main clock components: current time (no sec.) + date
@@ -165,9 +200,8 @@ function drawClock() {
   var timeStr = locale.time(curd, 1 /*omit seconds*/);
   var ampmStr = locale.meridian(curd).toUpperCase();
 
-  // Reset the state of the graphics library
+  g.setColor(0, 0, 0); // black
   g.drawLine(LCD_LEFT, TIME_SEP_POS_V, LCD_RIGHT, TIME_SEP_POS_V); // separator
-
   // draw the current time (4x size 7 segment)
   g.setFont(FONT4DIGITS).setFontAlign(TIME_ALIGN_H, TIME_ALIGN_V);
   g.drawString(timeStr, TIME_POS_H, TIME_POS_V, true /*clear background*/);
@@ -196,14 +230,18 @@ function updateSeconds(curd) {
 // Update the clock
 function updateClock(forceDrawAll) {
   var curd = new Date();
-  if (curd.getSeconds() == 0 || forceDrawAll) { 
-    // Should update the whole clock
-    eventTitleOffset = 0; // Reset events title scroll offset
-    g.reset();
-    g.setColor(0, 0, 0); // Black
-    drawClock();
+  if (curd.getSeconds() == 0 || forceDrawAll) { // Start of a minute or full redraw
     updateCalEvents();
+    eventTitleOffset = 0; // Reset events title scroll offset
+    if (handleCalNotif())
+      return; // Do not draw clock if a notification was drawn
+    // Should update the whole clock face
+    g.reset();
+    g.clear();
+    Bangle.drawWidgets();
     drawWeather();
+    drawClock();
+    drawCalEvents(eventTitleOffset);
   }
   if (!Bangle.isLocked()) { 
     // Update seconds and scroll event title only when unlocked
@@ -213,31 +251,27 @@ function updateClock(forceDrawAll) {
   }
 }
 
-// Clear the screen once, at startup
-g.clear();
-// First time draw - force update of the whole clock face
-updateClock(true);
-// Schedule clock update every second
-// TODO: Avoid timer event every second if locked
-var secondInterval = setInterval(updateClock, 1000);
+// Global context for updates
+var isClockEnabled; // Set to 'false' when showing notifications
+var clockUpdatesInterval; // Handle of setInterval() while clock updates are active
 
-// Hook to "lock" event to trigger appearance/vanish of seconds 
-// immediately when unlocked/locked
-Bangle.on('lock',(locked,reason)=>{
+function initClock()
+{
+  Bangle.loadWidgets();
+  Bangle.setUI("clock");
+  // Hook to "lock" event to trigger appearance/vanish of seconds 
+  // immediately when unlocked/locked
+  Bangle.on('lock', (locked,reason)=>{
     console.log("lock event: locked =", locked, "reason =", reason);
-    updateClock(true); // Redraw immediately when state changes
-});
+    if (isClockEnabled) {
+      updateClock(locked); // Force full update only when back to locked state (otherwise, only trigger seconds update)
+    }
+  });
 
-
-// Load and display widgets
-Bangle.loadWidgets();
-Bangle.drawWidgets();
-
-Bangle.setUI({
-  // "clock" mode defaults to show launcher when middle button pressed
-  mode: "clock",
   // Set touch zones:
-  touch: (zone, p) => {
+  onTouchDeregister = Bangle.on("touch", (_zone, p) => {
+    if (!isClockEnabled)
+      return; // Ignore custom touch events if not showing clock face (i.e., notification state)
     // Touch in events preview section -> Agenda app
     if (p.y > EVENT_FRAME_V) { 
       console.log("Switching to Agenda app...");
@@ -250,5 +284,29 @@ Bangle.setUI({
       // Provide haptic feedback before loading
       Bangle.buzz(50).then(() => {load("weather.app.js");} );
     }
-  }
-});
+  });
+
+  enableClock();
+}
+
+function disableClock() {
+  if (!isClockEnabled)
+    return;
+  isClockEnabled = false;
+  clearInterval(clockUpdatesInterval);
+  clockUpdatesInterval = undefined;
+}
+
+function enableClock() {
+  if (isClockEnabled)
+    return;
+  isClockEnabled = true;
+  updateClock(true); // Full clock drawing
+  // Schedule clock update every second
+  // TODO: Avoid timer event every second if locked
+  clockUpdatesInterval = setInterval(updateClock, 1000);
+}
+
+
+// "main"
+initClock();

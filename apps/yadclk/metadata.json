@@ -1,7 +1,7 @@
 { "id": "yadclk",
   "name": "Yad Clock",
   "shortName":"YadClock",
-  "version":"0.04",
+  "version":"0.05",
   "icon": "app.png",
   "dependencies": {"android": "app", "weather":"app"},
   "description": "Yet-Another-Digital clock.<br>Large 7-segment time with small date info.<br>In addition, shows the next calendar event and weather preview.<br>Touch the preview areas to launch Agenda or Weather app, respectively.",
